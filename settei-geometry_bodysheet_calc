@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="en">
+  <!-- https://settei-geometry.mahdeensky.top -->
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Settei Geometry: 3D Proportions Calculator</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #0f172a; --panel-bg: #1e293b; --primary: #ef4444;
+            --primary-hover: #dc2626; --text-main: #f8fafc; --text-muted: #94a3b8; --accent: #10b981;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        body { 
+            background-color: var(--bg-color); color: var(--text-main); 
+            display: flex; flex-direction: row; height: 100vh; overflow: hidden;
+            padding-top: 8px; box-sizing: border-box;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 420px; flex-shrink: 0; background-color: var(--panel-bg); padding: 20px;
+            display: flex; flex-direction: column; gap: 20px; border-right: 1px solid #334155;
+            overflow-y: auto; z-index: 100; box-shadow: 5px 0 15px rgba(0,0,0,0.3);
+        }
+        h1 { font-size: 1.3rem; text-align: center; color: white; }
+        h2 { font-size: 1.1rem; border-bottom: 1px solid #334155; padding-bottom: 5px; margin-bottom: 10px; }
+        
+        /* Mode Toggle */
+        .mode-toggle { display: flex; background: #0f172a; border-radius: 6px; padding: 4px; border: 1px solid #334155; }
+        .mode-toggle button { flex: 1; background: transparent; color: var(--text-muted); border: none; padding: 10px; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; font-size: 0.9rem;}
+        .mode-toggle button.active { background: var(--primary); color: white; }
+        .mode-toggle button#modeBWH.active { background: var(--accent); color: white; }
+
+        .control-group { display: flex; flex-direction: column; gap: 8px; }
+        .row { display: flex; gap: 10px; align-items: center; }
+        .grid-filters { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.85rem; }
+        label { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
+        .filter-label { text-transform: none; color: var(--text-main); cursor: pointer; display: flex; align-items: center; gap: 5px;}
+        
+        input[type="number"], select {
+            background: #0f172a; border: 1px solid #334155; color: white;
+            padding: 8px 12px; border-radius: 6px; outline: none; width: 100%;
+        }
+        input[type="range"] { flex-grow: 1; cursor: pointer; }
+        
+        .btn {
+            background-color: var(--primary); color: white; border: none; padding: 12px;
+            border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s;
+            text-transform: uppercase; letter-spacing: 1px; width: 100%;
+        }
+        .btn:hover { background-color: var(--primary-hover); }
+        .btn:disabled { background-color: #475569; cursor: not-allowed; }
+        .btn-secondary { background-color: #3b82f6; }
+        .btn-secondary:hover { background-color: #2563eb; }
+        .btn-outline { background-color: transparent; border: 1px solid var(--text-muted); padding: 6px 12px; font-size: 0.8rem; }
+        .btn-outline:hover { background-color: rgba(255,255,255,0.1); }
+
+        .file-upload {
+            background: #0f172a; border: 2px dashed #475569; padding: 25px;
+            text-align: center; border-radius: 6px; cursor: pointer; transition: 0.2s;
+        }
+        .file-upload.drag-over { border-color: var(--primary); background: rgba(239, 68, 68, 0.1); }
+        .file-upload input { display: none; }
+
+        /* Guide Accordion */
+        details.guide { background: #0f172a; border-radius: 6px; border: 1px solid #334155; padding: 10px 15px; }
+        details.guide summary { cursor: pointer; font-weight: 600; font-size: 0.95rem; color: var(--primary); display: flex; justify-content: space-between; align-items: center; }
+        details.guide.bwh-guide summary { color: var(--accent); }
+        details.guide summary::-webkit-details-marker { display: none; }
+        details.guide summary:after { content: '▼'; font-size: 0.8em; transition: transform 0.2s; }
+        details.guide[open] summary:after { transform: rotate(180deg); }
+        .guide-content { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #334155; font-size: 0.85rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 10px; }
+        .guide-content p { line-height: 1.4; color: var(--text-muted); font-size: 0.85rem;}
+
+        /* Footer Credits */
+        .footer {
+            margin-top: auto; padding-top: 15px; border-top: 1px solid #334155;
+            display: flex; flex-direction: column; gap: 12px; font-size: 0.85rem; color: var(--text-muted);
+        }
+        .footer span { font-weight: 600; color: var(--text-main); }
+
+        /* Main Area */
+        .main-area { flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto; position: relative; scroll-behavior: smooth; }
+        .workspace { 
+            min-height: 100vh; position: relative; overflow: hidden; cursor: grab; 
+            background: repeating-linear-gradient(45deg, #0f172a, #0f172a 10px, #131c31 10px, #131c31 20px); 
+            touch-action: none; 
+        }
+        .workspace:active { cursor: grabbing; }
+
+        /* Floating Contextual Guide */
+        .floating-guide { 
+            position: absolute; bottom: 30px; right: 30px; background: rgba(15, 23, 42, 0.95); 
+            border-left: 4px solid var(--primary); border-radius: 6px; padding: 15px; width: 450px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5); backdrop-filter: blur(5px); z-index: 50; 
+            pointer-events: none; opacity: 1; transition: opacity 0.3s; line-height: 1.5; font-size: 0.9rem; 
+        }
+
+        /* Image & Lines */
+        .viewport-wrapper { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); transform-origin: center center; display: none; }
+        .img-container { position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.5); background: #fff; display: inline-block; --line-w: 2px;}
+        .img-container img { display: block; max-width: 90vw; max-height: 85vh; width: auto; height: auto; user-select: none; pointer-events: none; }
+        
+        .measure-line { position: absolute; background-color: var(--primary); box-shadow: 0 0 8px var(--primary); z-index: 20; }
+        .measure-line.h-line { width: 100%; height: var(--line-w); cursor: ns-resize; left: 0; }
+        .measure-line.v-line { height: 100%; width: var(--line-w); cursor: ew-resize; top: 0; }
+        .measure-line::after { content: ''; position: absolute; z-index: 21; }
+        .measure-line.h-line::after { top: -15px; bottom: -15px; left: 0; right: 0; }
+        .measure-line.v-line::after { left: -15px; right: -15px; top: 0; bottom: 0; }
+        
+        /* Draggable Labels */
+        .line-label { 
+            position: absolute; background: rgba(0,0,0,0.8); color: white; font-size: 0.75rem; 
+            padding: 4px 8px; border-radius: 4px; white-space: nowrap; border: 1px solid #475569;
+            pointer-events: auto; cursor: grab; z-index: 22; box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        }
+        .line-label:active { cursor: grabbing; background: rgba(239, 68, 68, 0.9); }
+        .hide-labels .line-label { display: none !important; }
+
+        /* Dynamic Span Tethers & Labels */
+        .span-line {
+            position: absolute; z-index: 15; display: flex; align-items: center; justify-content: center;
+            opacity: 0.85; cursor: grab; pointer-events: auto;
+        }
+        .span-line:active { cursor: grabbing; opacity: 1; }
+        .span-line.v-span { width: var(--line-w); border-left: var(--line-w) dashed currentColor; }
+        .span-line.h-span { height: var(--line-w); border-top: var(--line-w) dashed currentColor; }
+        .span-line::after { content: ''; position: absolute; z-index: 16; }
+        .span-line.v-span::after { left: -15px; right: -15px; top: 0; bottom: 0; }
+        .span-line.h-span::after { top: -15px; bottom: -15px; left: 0; right: 0; }
+        
+        .span-label {
+            background: rgba(0,0,0,0.8); color: white; font-size: 0.65rem; font-weight: bold;
+            padding: 3px 6px; border-radius: 4px; position: absolute; pointer-events: auto; cursor: grab;
+            z-index: 17; left: 50%; top: 50%; transform: translate(-50%, -50%); border: 1px solid #475569;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5); white-space: nowrap;
+        }
+        .span-label:active { cursor: grabbing; background: rgba(239, 68, 68, 0.9); }
+        .hide-span-labels .span-label { display: none !important; }
+
+        /* Pixel Loupe Magnifier */
+        #loupeCanvas {
+            position: fixed; width: 140px; height: 140px; border-radius: 50%;
+            border: 3px solid var(--primary); pointer-events: none; display: none; z-index: 9999;
+            box-shadow: 0 0 20px rgba(0,0,0,0.9); image-rendering: pixelated; background: #0f172a;
+        }
+
+        /* Animation Math Board */
+        .math-board { min-height: 60vh; background-color: #0b1120; padding: 50px; border-top: 2px solid var(--primary); display: none; flex-direction: column; gap: 30px; }
+        .math-step { background: #1e293b; border-radius: 8px; padding: 25px; border-left: 4px solid var(--accent); opacity: 0; transform: translateY(20px); transition: all 0.5s ease-out; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        .math-step.visible { opacity: 1; transform: translateY(0); }
+        .step-title { font-size: 1.2rem; font-weight: bold; margin-bottom: 15px; color: var(--accent); }
+        .final-result-card { text-align: center; padding: 40px; background: linear-gradient(145deg, #1e293b, #0f172a); border-radius: 12px; border: 1px solid var(--primary); margin-top: 20px; }
+        .final-result-card h3 { font-size: 1.5rem; color: var(--text-muted); }
+        .final-result-card .main-stat { font-size: 4.5rem; font-weight: bold; color: var(--primary); text-shadow: 0 0 20px rgba(239, 68, 68, 0.4); margin: 10px 0; }
+        .final-result-card .sub-stat { font-size: 1.2rem; color: var(--text-muted); }
+
+        /* Export Overlay */
+        .draggable-math-overlay {
+            position: absolute; top: 20px; right: 20px; background: rgba(15,23,42,0.9); color: white;
+            padding: 1.2em; border-radius: 8px; border: 2px solid var(--primary); backdrop-filter: blur(5px);
+            display: none; z-index: 1000; font-family: sans-serif; box-shadow: 0 0 20px rgba(0,0,0,0.8);
+            cursor: grab; min-width: 50px; min-height: 50px; overflow: hidden; font-size: 16px;
+        }
+        .draggable-math-overlay:active { cursor: grabbing; }
+        .export-title { font-size: 1.1em; font-weight: bold; color: var(--accent); margin-bottom: 0.5em; border-bottom: 1px solid #334155; padding-bottom: 0.3em; text-align: center;}
+        .export-katex { font-size: 0.95em; margin-bottom: 1em; }
+        .export-result { text-align: center; border-top: 1px solid #334155; padding-top: 0.8em; }
+        .resize-handle {
+            position: absolute; bottom: 0; right: 0; width: 35px; height: 35px;
+            cursor: se-resize; z-index: 1001;
+            background: linear-gradient(135deg, transparent 50%, var(--primary) 50%);
+            border-bottom-right-radius: 6px;
+        }
+
+        /* Fixed Export Controls */
+        .export-controls {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            display: none; gap: 15px; z-index: 2000; background: rgba(15, 23, 42, 0.95);
+            padding: 15px 25px; border-radius: 50px; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            border: 1px solid #334155;
+        }
+        .export-controls button {
+            padding: 12px 24px; font-size: 1rem; border-radius: 50px; font-weight: bold; 
+            border: none; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        #saveConfirmBtn { background: var(--accent); color: #fff; }
+        #saveConfirmBtn:hover { background: #059669; }
+        #cancelExportBtn { background: #ef4444; color: #fff; }
+        #cancelExportBtn:hover { background: #dc2626; }
+    </style>
+</head>
+<body>
+<header style="display: block; position: fixed; top: 0; left: 0; right: 0; height: 28px; background: rgba(15, 23, 42, 0.95); color: #94a3b8; font-size: 0.7rem; text-align: center; line-height: 28px; z-index: 200; border-bottom: 1px solid #334155; backdrop-filter: blur(5px);">
+  <a href="https://settei-geometry.mahdeensky.top" target="_blank" style="color: #94a3b8; text-decoration: none;"> https://settei-geometry.mahdeensky.top </a>
+</header>
+
+    <canvas id="loupeCanvas" width="140" height="140" data-html2canvas-ignore="true"></canvas>
+
+    <div class="sidebar">
+        <h1>Settei Geometry</h1>
+
+        <div class="mode-toggle">
+            <button id="modeCup" class="active">Cup Size</button>
+            <button id="modeBWH">Three Sizes (BWH)</button>
+        </div>
+        
+        <label class="file-upload" id="uploadBtn">
+            <span id="uploadText">Click or Drop Ref Sheet Here</span>
+            <input type="file" id="imageLoader" accept="image/*">
+        </label>
+
+        <div class="control-group">
+            <h2>1. Canonical Height</h2>
+            <div class="row">
+                <input type="number" id="heightCm" value="160" placeholder="cm">
+                <div id="heightFtIn" style="display:none; gap:10px; width:100%;">
+                    <input type="number" id="heightFt" value="5" placeholder="ft" style="width:50%;">
+                    <input type="number" id="heightIn" value="3" placeholder="in" style="width:50%;">
+                </div>
+                <select id="heightUnit" style="width: 90px;">
+                    <option value="cm">cm</option>
+                    <option value="ftin">ft / in</option>
+                </select>
+            </div>
+        </div>
+
+        <details class="guide" id="guideCup">
+            <summary>How It's Calculated</summary>
+            <div class="guide-content">
+                <p><b>1. Ramanujan's Approximation:</b> Because the torso is an ellipse, we use the semi-major axis (<i>a</i>) and semi-minor axis (<i>b</i>) to calculate circumference (<i>C</i>).</p>
+                <div id="ramanujanExplained"></div>
+                <p><b>2. Delta & Cup Size:</b> We run this for Bust and Underbust. The difference (Δ) dictates cup volume.</p>
+            </div>
+        </details>
+
+        <details class="guide bwh-guide" id="guideBWH" style="display:none;">
+            <summary>How "Three Sizes" Work</summary>
+            <div class="guide-content">
+                <p>We use the same ellipse geometry but apply it to three zones to generate the classic B-W-H anime stats.</p>
+                <p><b>Waist:</b> Measure the absolute narrowest point of the abdomen.</p>
+                <p><b>Hips:</b> Measure the absolute widest point of the pelvis and furthest protrusion of the glutes.</p>
+            </div>
+        </details>
+
+        <div class="control-group">
+            <div class="row" style="justify-content: space-between;">
+                <h2>2. Measurement Settings</h2>
+                <button class="btn btn-outline" id="resetViewBtn">Reset View</button>
+            </div>
+            
+            <div class="row">
+                <label style="width: 110px;">Line Thickness</label>
+                <input type="range" id="lineWidth" min="1" max="6" value="2" autocomplete="off">
+                <span id="lineWidthVal" style="font-size:0.8em; width:30px; text-align:right;">2px</span>
+            </div>
+
+            <div class="row" id="cupSystemRow">
+                <label style="width: 110px;">Sizing System</label>
+                <select id="cupSystem">
+                    <option value="jis">JIS (Japan)</option>
+                    <option value="us">US / UK Strict</option>
+                </select>
+            </div>
+            
+            <label style="display:flex; gap:5px; align-items:center; margin-top:10px;">
+                <input type="checkbox" id="showSpanLines" checked> <span style="text-transform:none; color:white;">Show Measurement Tethers</span>
+            </label>
+            
+            <div class="row" style="gap:15px; margin-top: 5px;">
+                <label style="display:flex; gap:5px; align-items:center;">
+                    <input type="checkbox" id="hideLabelsToggle"> <span style="text-transform:none; color:white;">Hide Red Labels</span>
+                </label>
+                <label style="display:flex; gap:5px; align-items:center;">
+                    <input type="checkbox" id="hideSpanLabelsToggle"> <span style="text-transform:none; color:white;">Hide Span Labels</span>
+                </label>
+            </div>
+
+            <!-- Cup Filters -->
+            <div id="filtersCup" class="grid-filters" style="margin-top: 10px;">
+                <label class="filter-label"><input type="radio" name="viewModeCup" value="all" checked> Show All</label>
+                <label class="filter-label"><input type="radio" name="viewModeCup" value="h"> Height Only</label>
+                <label class="filter-label"><input type="radio" name="viewModeCup" value="uw"> Underbust W</label>
+                <label class="filter-label"><input type="radio" name="viewModeCup" value="ud"> Underbust D</label>
+                <label class="filter-label"><input type="radio" name="viewModeCup" value="bw"> Bust W</label>
+                <label class="filter-label"><input type="radio" name="viewModeCup" value="bd"> Bust D</label>
+            </div>
+
+            <!-- BWH Filters -->
+            <div id="filtersBWH" class="grid-filters" style="margin-top: 10px; display:none;">
+                <label class="filter-label"><input type="radio" name="viewModeBWH" value="all" checked> Show All</label>
+                <label class="filter-label"><input type="radio" name="viewModeBWH" value="h"> Height Only</label>
+                <label class="filter-label"><input type="radio" name="viewModeBWH" value="bw"> Bust W</label>
+                <label class="filter-label"><input type="radio" name="viewModeBWH" value="bd"> Bust D</label>
+                <label class="filter-label"><input type="radio" name="viewModeBWH" value="ww"> Waist W</label>
+                <label class="filter-label"><input type="radio" name="viewModeBWH" value="wd"> Waist D</label>
+                <label class="filter-label"><input type="radio" name="viewModeBWH" value="hw"> Hip W</label>
+                <label class="filter-label"><input type="radio" name="viewModeBWH" value="hd"> Hip D</label>
+            </div>
+        </div>
+
+        <div class="control-group" style="gap: 15px; margin-top: auto;">
+            <div class="row">
+                <input type="checkbox" id="showAnimation" checked style="width:auto;">
+                <label for="showAnimation" style="text-transform:none;">Enable Math Animation</label>
+            </div>
+            <button class="btn" id="calcBtn" disabled>Calculate Proportions</button>
+            <button class="btn btn-secondary" id="exportBtn" disabled>Export Image</button>
+        </div>
+
+        <footer class="footer">
+            <span>By TheDarkEnjoyer</span>
+        </footer>
+    </div>
+
+    <div class="main-area" id="mainArea">
+        <div class="workspace" id="workspace">
+            <div class="viewport-wrapper" id="viewportWrapper">
+                <div class="img-container" id="imgContainer">
+                    <img id="refImage" src="" alt="Reference Sheet">
+                    
+                    <div id="draggableMath" class="draggable-math-overlay">
+                        <div class="export-title" id="exportTitleText">Settei Geometry</div>
+                        <div id="exportMathContent" class="export-katex"></div>
+                        <div class="export-result" id="exportResultContainer"></div>
+                        <div class="resize-handle" id="mathResizeHandle"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="contextualGuide" class="floating-guide">
+                <b>Show All Lines:</b> Displays all measurement lines on the canvas to give you a full overview of the geometry. Use this to double-check that your front and side measurements perfectly align horizontally.
+            </div>
+            
+            <div class="export-controls" id="exportControls">
+                <button id="saveConfirmBtn">Confirm & Save</button>
+                <button id="cancelExportBtn">Cancel</button>
+            </div>
+        </div>
+
+        <div class="math-board" id="mathBoard"></div>
+    </div>
+
+    <script>
+        // --- DOM Elements ---
+        const imageLoader = document.getElementById('imageLoader');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const refImage = document.getElementById('refImage');
+        const imgContainer = document.getElementById('imgContainer');
+        const viewportWrapper = document.getElementById('viewportWrapper');
+        const workspace = document.getElementById('workspace');
+        const mathBoard = document.getElementById('mathBoard');
+        const contextualGuide = document.getElementById('contextualGuide');
+        const calcBtn = document.getElementById('calcBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const showSpanLinesTgl = document.getElementById('showSpanLines');
+        
+        // Settings Elements
+        const lineWidthInput = document.getElementById('lineWidth');
+        const lineWidthVal = document.getElementById('lineWidthVal');
+        const heightUnit = document.getElementById('heightUnit');
+        const heightCm = document.getElementById('heightCm');
+        const heightFtIn = document.getElementById('heightFtIn');
+        const heightFt = document.getElementById('heightFt');
+        const heightIn = document.getElementById('heightIn');
+
+        // Export Elements
+        const draggableMath = document.getElementById('draggableMath');
+        const resizeHandle = document.getElementById('mathResizeHandle');
+        const exportControls = document.getElementById('exportControls');
+        const saveConfirmBtn = document.getElementById('saveConfirmBtn');
+        const cancelExportBtn = document.getElementById('cancelExportBtn');
+        const exportResultContainer = document.getElementById('exportResultContainer');
+
+        // Loupe Engine
+        const loupeCanvas = document.getElementById('loupeCanvas');
+        const loupeCtx = loupeCanvas.getContext('2d');
+        loupeCtx.imageSmoothingEnabled = false;
+
+        // State & Mode
+        let currentMode = 'cup'; // 'cup' or 'bwh'
+        let scale = 1; let panX = 0; let panY = 0;
+        let isPanning = false; let startPanX = 0; let startPanY = 0;
+        let lineElements = {}; let spanElements = {};
+        let draggingLine = null; let draggingSpan = null;
+        let lastMathData = null;
+
+        // Label Dragger State
+        let draggingLabel = null;
+        let labelStartX, labelStartY, labelStartTx, labelStartTy;
+        let initialPinchDistance = null; let initialScale = 1;
+
+        // --- Master Line Definitions ---
+        const masterLineDefs = [
+            { id: 'h1', type: 'h', label: 'Top of Head', val: 5, modes: ['cup', 'bwh'] },
+            { id: 'h2', type: 'h', label: 'Bottom of Feet', val: 95, modes: ['cup', 'bwh'] },
+            
+            { id: 'uw1', type: 'v', label: 'UB-Width L', val: 20, modes: ['cup'] },
+            { id: 'uw2', type: 'v', label: 'UB-Width R', val: 30, modes: ['cup'] },
+            { id: 'ud1', type: 'v', label: 'UB-Depth Front', val: 65, modes: ['cup'] },
+            { id: 'ud2', type: 'v', label: 'UB-Depth Back', val: 72, modes: ['cup'] },
+            
+            { id: 'bw1', type: 'v', label: 'Bust-Width L', val: 18, modes: ['cup', 'bwh'] },
+            { id: 'bw2', type: 'v', label: 'Bust-Width R', val: 32, modes: ['cup', 'bwh'] },
+            { id: 'bd1', type: 'v', label: 'Bust-Depth Front', val: 63, modes: ['cup', 'bwh'] },
+            { id: 'bd2', type: 'v', label: 'Bust-Depth Back', val: 73, modes: ['cup', 'bwh'] },
+
+            { id: 'ww1', type: 'v', label: 'Waist-Width L', val: 22, modes: ['bwh'] },
+            { id: 'ww2', type: 'v', label: 'Waist-Width R', val: 28, modes: ['bwh'] },
+            { id: 'wd1', type: 'v', label: 'Waist-Depth Front', val: 66, modes: ['bwh'] },
+            { id: 'wd2', type: 'v', label: 'Waist-Depth Back', val: 71, modes: ['bwh'] },
+
+            { id: 'hw1', type: 'v', label: 'Hip-Width L', val: 16, modes: ['bwh'] },
+            { id: 'hw2', type: 'v', label: 'Hip-Width R', val: 34, modes: ['bwh'] },
+            { id: 'hd1', type: 'v', label: 'Hip-Depth Front', val: 65, modes: ['bwh'] },
+            { id: 'hd2', type: 'v', label: 'Hip-Depth Back', val: 76, modes: ['bwh'] }
+        ];
+
+        const masterSpanDefs = [
+            { id: 'span_h', lines: ['h1', 'h2'], dir: 'v', color: '#10b981', label: 'Height', val: 10, align: 'center', modes: ['cup', 'bwh'] },
+            
+            { id: 'span_uw', lines: ['uw1', 'uw2'], dir: 'h', color: '#3b82f6', label: 'UB Width', val: 22, align: 'left', modes: ['cup'] },
+            { id: 'span_ud', lines: ['ud1', 'ud2'], dir: 'h', color: '#0ea5e9', label: 'UB Depth', val: 65, align: 'left', modes: ['cup'] },
+            
+            { id: 'span_bw', lines: ['bw1', 'bw2'], dir: 'h', color: '#f59e0b', label: 'Bust Width', val: 28, align: 'right', modes: ['cup', 'bwh'] },
+            { id: 'span_bd', lines: ['bd1', 'bd2'], dir: 'h', color: '#ef4444', label: 'Bust Depth', val: 71, align: 'right', modes: ['cup', 'bwh'] },
+
+            { id: 'span_ww', lines: ['ww1', 'ww2'], dir: 'h', color: '#a855f7', label: 'Waist Width', val: 45, align: 'left', modes: ['bwh'] },
+            { id: 'span_wd', lines: ['wd1', 'wd2'], dir: 'h', color: '#d946ef', label: 'Waist Depth', val: 80, align: 'left', modes: ['bwh'] },
+
+            { id: 'span_hw', lines: ['hw1', 'hw2'], dir: 'h', color: '#ec4899', label: 'Hip Width', val: 60, align: 'right', modes: ['bwh'] },
+            { id: 'span_hd', lines: ['hd1', 'hd2'], dir: 'h', color: '#f43f5e', label: 'Hip Depth', val: 88, align: 'right', modes: ['bwh'] }
+        ];
+
+        // --- Settings & UI Logic ---
+        document.addEventListener("DOMContentLoaded", () => {
+            katex.render(String.raw`C \approx \pi \left[ 3(a+b) - \sqrt{(3a+b)(a+3b)} \right]`, document.getElementById('ramanujanExplained'), {displayMode: true});
+        });
+
+        // Mode Switching
+        document.getElementById('modeCup').addEventListener('click', () => switchMode('cup'));
+        document.getElementById('modeBWH').addEventListener('click', () => switchMode('bwh'));
+
+        function switchMode(mode) {
+            currentMode = mode;
+            document.getElementById('modeCup').classList.toggle('active', mode === 'cup');
+            document.getElementById('modeBWH').classList.toggle('active', mode === 'bwh');
+            
+            document.getElementById('filtersCup').style.display = mode === 'cup' ? 'grid' : 'none';
+            document.getElementById('filtersBWH').style.display = mode === 'bwh' ? 'grid' : 'none';
+            document.getElementById('cupSystemRow').style.display = mode === 'cup' ? 'flex' : 'none';
+            
+            document.getElementById('guideCup').style.display = mode === 'cup' ? 'block' : 'none';
+            document.getElementById('guideBWH').style.display = mode === 'bwh' ? 'block' : 'none';
+
+            // Reset active filter to "All"
+            document.querySelector(`input[name="viewMode${mode === 'cup' ? 'Cup' : 'BWH'}"][value="all"]`).checked = true;
+
+            // Re-render lines if an image is loaded
+            if (refImage.src && !refImage.src.endsWith(window.location.pathname)) {
+                initLines();
+                mathBoard.style.display = 'none'; mathBoard.innerHTML = '';
+                calcBtn.disabled = false; exportBtn.disabled = true;
+                
+                // Adjust primary styling for modes (but lines stay red)
+                document.documentElement.style.setProperty('--primary', mode === 'cup' ? '#ef4444' : '#ef4444');
+                document.documentElement.style.setProperty('--accent', mode === 'cup' ? '#10b981' : '#10b981');
+            }
+        }
+
+        const resizeObserver = new ResizeObserver(entries => {
+            for (let entry of entries) {
+                const newWidth = entry.contentRect.width;
+                const baseWidth = 450; 
+                const newFontSize = (newWidth / baseWidth) * 16;
+                draggableMath.style.fontSize = Math.max(4, newFontSize) + 'px'; 
+            }
+        });
+        resizeObserver.observe(draggableMath);
+
+        heightUnit.addEventListener('change', (e) => {
+            if(e.target.value === 'cm') { heightCm.style.display = 'block'; heightFtIn.style.display = 'none'; } 
+            else { heightCm.style.display = 'none'; heightFtIn.style.display = 'flex'; }
+        });
+
+        lineWidthInput.addEventListener('input', (e) => {
+            const w = e.target.value + 'px';
+            imgContainer.style.setProperty('--line-w', w);
+            lineWidthVal.innerText = w;
+        });
+
+        showSpanLinesTgl.addEventListener('change', updateSpanLines);
+
+        function getActualHeightCm() {
+            if(heightUnit.value === 'cm') return parseFloat(heightCm.value) || 160;
+            const ft = parseFloat(heightFt.value) || 0; const inches = parseFloat(heightIn.value) || 0;
+            return ((ft * 12) + inches) * 2.54;
+        }
+
+        // --- File Upload ---
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => { document.body.addEventListener(eventName, preventDefaults, false) });
+        function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+        document.body.addEventListener('dragover', () => uploadBtn.classList.add('drag-over'));
+        document.body.addEventListener('dragleave', () => uploadBtn.classList.remove('drag-over'));
+        document.body.addEventListener('drop', (e) => {
+            uploadBtn.classList.remove('drag-over');
+            if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+        });
+        imageLoader.addEventListener('change', (e) => { if(e.target.files[0]) handleFile(e.target.files[0]); });
+
+        function handleFile(file) {
+            if(!file.type.startsWith('image/')) return;
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                refImage.src = event.target.result;
+                viewportWrapper.style.display = 'block';
+                calcBtn.disabled = false; exportBtn.disabled = true;
+                resetView(); initLines();
+                mathBoard.style.display = 'none'; mathBoard.innerHTML = '';
+                draggableMath.style.width = '450px'; draggableMath.style.height = 'auto';
+            }
+            reader.readAsDataURL(file);
+        }
+
+        // --- Unified Touch / Mouse Interactions ---
+        function getPos(e) {
+            if(e.touches && e.touches.length > 0) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            return { x: e.clientX, y: e.clientY };
+        }
+        function getPinchDistance(touches) {
+            const dx = touches[0].clientX - touches[1].clientX; const dy = touches[0].clientY - touches[1].clientY;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        function resetView() { scale = 1; panX = 0; panY = 0; updateTransform(); }
+        document.getElementById('resetViewBtn').addEventListener('click', resetView);
+        function updateTransform() { viewportWrapper.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${scale})`; }
+
+        workspace.addEventListener('wheel', (e) => {
+            if(viewportWrapper.style.display === 'none') return; e.preventDefault();
+            scale += e.deltaY < 0 ? 0.1 : -0.1; scale = Math.max(0.1, Math.min(scale, 5)); updateTransform();
+        });
+
+        function startInteraction(e) {
+            if (e.touches && e.touches.length === 2) { initialPinchDistance = getPinchDistance(e.touches); initialScale = scale; return; }
+            if (e.target.classList.contains('line-label') || e.target.classList.contains('span-label')) { 
+                draggingLabel = e.target; 
+                const pos = getPos(e); labelStartX = pos.x; labelStartY = pos.y;
+                labelStartTx = parseFloat(draggingLabel.dataset.tx || 0); labelStartTy = parseFloat(draggingLabel.dataset.ty || 0);
+                e.stopPropagation(); return; 
+            }
+            if (e.target.closest('.span-line')) { draggingSpan = e.target.closest('.span-line'); e.stopPropagation(); return; }
+            if (e.target.classList.contains('measure-line')) { draggingLine = e.target; return; }
+            if (e.target.closest('#draggableMath') || e.target.closest('.sidebar') || e.target.closest('.export-controls')) return;
+            
+            isPanning = true; const pos = getPos(e); startPanX = pos.x - panX; startPanY = pos.y - panY;
+        }
+        workspace.addEventListener('mousedown', startInteraction);
+        workspace.addEventListener('touchstart', startInteraction, {passive: false});
+
+        function moveInteraction(e) {
+            if (e.touches && e.touches.length === 2 && initialPinchDistance) {
+                e.preventDefault();
+                scale = Math.max(0.1, Math.min(initialScale * (getPinchDistance(e.touches) / initialPinchDistance), 5));
+                updateTransform(); return;
+            }
+            if(isPanning || draggingLine || draggingLabel || draggingSpan || typeof isDraggingMath !== 'undefined' && isDraggingMath || typeof isResizingMath !== 'undefined' && isResizingMath) {
+                if(e.type === 'touchmove') e.preventDefault(); 
+            }
+            const pos = getPos(e);
+            const rect = imgContainer.getBoundingClientRect();
+
+            if (draggingLabel) {
+                const dx = (pos.x - labelStartX) / scale; const dy = (pos.y - labelStartY) / scale;
+                const newTx = labelStartTx + dx; const newTy = labelStartTy + dy;
+                draggingLabel.dataset.tx = newTx; draggingLabel.dataset.ty = newTy;
+                
+                if (draggingLabel.classList.contains('span-label')) {
+                    draggingLabel.style.transform = `translate(calc(-50% + ${newTx}px), calc(-50% + ${newTy}px))`;
+                } else {
+                    draggingLabel.style.transform = `translate(${newTx}px, ${newTy}px)`;
+                }
+                return;
+            }
+
+            if (draggingSpan) {
+                let pct;
+                if (draggingSpan.dataset.dir === 'v') {
+                    pct = Math.max(0, Math.min(100, ((pos.x - rect.left) / rect.width) * 100));
+                } else {
+                    pct = Math.max(0, Math.min(100, ((pos.y - rect.top) / rect.height) * 100));
+                }
+                draggingSpan.dataset.val = pct;
+                
+                const masterDef = masterSpanDefs.find(d => d.id === draggingSpan.id);
+                if (masterDef) masterDef.val = pct;
+
+                updateSpanLines(); return;
+            }
+
+            if(typeof isResizingMath !== 'undefined' && isResizingMath) {
+                const dx = (pos.x - initialMouseX) / scale; const dy = (pos.y - initialMouseY) / scale;
+                draggableMath.style.width = Math.max(50, initialMathWidth + dx) + 'px';
+                draggableMath.style.height = Math.max(50, initialMathHeight + dy) + 'px'; return;
+            }
+            if(typeof isDraggingMath !== 'undefined' && isDraggingMath) {
+                let x = (pos.x - rect.left - mathOffsetX) / scale; let y = (pos.y - rect.top - mathOffsetY) / scale;
+                draggableMath.style.left = `${x}px`; draggableMath.style.top = `${y}px`; draggableMath.style.right = 'auto'; return;
+            }
+            if(isPanning) { panX = pos.x - startPanX; panY = pos.y - startPanY; updateTransform(); return; }
+
+            if(draggingLine) {
+                let pct;
+                if(draggingLine.dataset.type === 'h') {
+                    pct = Math.max(0, Math.min(100, ((pos.y - rect.top) / rect.height) * 100));
+                    draggingLine.style.top = pct + '%'; 
+                } else {
+                    pct = Math.max(0, Math.min(100, ((pos.x - rect.left) / rect.width) * 100));
+                    draggingLine.style.left = pct + '%'; 
+                }
+                draggingLine.dataset.val = pct;
+
+                const masterDef = masterLineDefs.find(d => d.id === draggingLine.id);
+                if (masterDef) masterDef.val = pct;
+
+                updateSpanLines();
+
+                loupeCanvas.style.display = 'block';
+                const imgX = ((pos.x - rect.left) / rect.width) * refImage.naturalWidth;
+                const imgY = ((pos.y - rect.top) / rect.height) * refImage.naturalHeight;
+                loupeCtx.clearRect(0, 0, 140, 140);
+                loupeCtx.drawImage(refImage, imgX - 14, imgY - 14, 28, 28, 0, 0, 140, 140);
+                
+                // Keep loupe reticle red always
+                loupeCtx.strokeStyle = 'rgba(239, 68, 68, 0.9)'; 
+                loupeCtx.lineWidth = 2;
+                loupeCtx.beginPath();
+                loupeCtx.moveTo(70, 50); loupeCtx.lineTo(70, 90);
+                loupeCtx.moveTo(50, 70); loupeCtx.lineTo(90, 70);
+                loupeCtx.stroke();
+
+                let lX = pos.x + 25; let lY = pos.y - 165;
+                if(lY < 10) lY = pos.y + 25; 
+                if(lX + 150 > window.innerWidth) lX = pos.x - 165;
+                loupeCanvas.style.left = lX + 'px'; loupeCanvas.style.top = lY + 'px';
+            }
+        }
+        document.addEventListener('mousemove', moveInteraction);
+        document.addEventListener('touchmove', moveInteraction, {passive: false});
+
+        function endInteraction(e) { 
+            if (e && e.touches && e.touches.length < 2) { initialPinchDistance = null; }
+            loupeCanvas.style.display = 'none';
+            isPanning = false; draggingLine = null; draggingLabel = null; draggingSpan = null; 
+            if (typeof isDraggingMath !== 'undefined') isDraggingMath = false; 
+            if (typeof isResizingMath !== 'undefined') isResizingMath = false;
+        }
+        document.addEventListener('mouseup', endInteraction);
+        document.addEventListener('touchend', endInteraction);
+
+        // --- Instructions & Definitions ---
+        const guideTexts = {
+            'all': '<b>Show All Lines:</b> Use this complete view to double-check that your front and side measurements perfectly align horizontally.',
+            'h': '<b>Height (Front & Side View):</b> Top line at the actual skull curve (ignore hair volume). Bottom line at the bare heel.',
+            'uw': '<b>Underbust Width (Front View):</b> Left and right lines at the exact crease below the breast (inframammary fold), touching the outer edges of the bare ribcage.',
+            'ud': '<b>Underbust Depth (Side View):</b> Front line touching the ribcage directly under the breast. Back line flat against the back at that exact horizontal plane.',
+            'bw': '<b>Bust Width (Front View):</b> Left and right lines at the absolute widest horizontal bulge of the breasts.',
+            'bd': '<b>Bust Depth (Side View):</b> Front line at the absolute furthest tip (apex) of the breast. Back line flat against the back, exactly horizontally aligned with the apex.',
+            'ww': '<b>Waist Width (Front View):</b> Left and right lines at the absolute narrowest part of the character\'s torso/abdomen.',
+            'wd': '<b>Waist Depth (Side View):</b> Front line at the stomach, back line at the lower back curve, both placed exactly at the horizontal level of your width measurement.',
+            'hw': '<b>Hip Width (Front View):</b> Left and right lines at the absolute widest part of the pelvis or upper thighs.',
+            'hd': '<b>Hip Depth (Side View):</b> Front line at the lower abdomen/pelvis. Back line at the absolute furthest protruding point of the glutes. Ensure they are perfectly horizontally aligned.'
+        };
+
+        function initLines() {
+            document.querySelectorAll('.measure-line, .span-line').forEach(e => e.remove());
+            lineElements = {}; spanElements = {};
+
+            let vLabelOffsetCounter = 0; let hLabelOffsetCounter = 0;
+
+            const activeLines = masterLineDefs.filter(d => d.modes.includes(currentMode));
+            const activeSpans = masterSpanDefs.filter(d => d.modes.includes(currentMode));
+
+            activeLines.forEach(def => {
+                const line = document.createElement('div');
+                line.className = `measure-line ${def.type}-line`;
+                line.id = def.id;
+
+                const label = document.createElement('div');
+                label.className = 'line-label';
+                label.innerText = def.label;
+                label.dataset.tx = 0; label.dataset.ty = 0;
+
+                if (def.type === 'h') {
+                    line.style.top = def.val + '%';
+                    if (def.val < 50) label.style.top = '-35px'; else label.style.top = '10px';
+                    label.style.left = (20 + (hLabelOffsetCounter * 130)) + 'px';
+                    hLabelOffsetCounter++;
+                } else {
+                    line.style.left = def.val + '%';
+                    label.style.left = '10px';
+                    label.style.top = (45 + (vLabelOffsetCounter * 35)) + 'px';
+                    vLabelOffsetCounter++;
+                }
+
+                line.appendChild(label);
+                line.dataset.val = def.val; 
+                line.dataset.type = def.type; 
+                // Properly assign group so Height filter works strictly
+                line.dataset.group = def.type === 'h' ? 'h' : def.id.substring(0, 2); 
+
+                imgContainer.appendChild(line);
+                lineElements[def.id] = line;
+            });
+
+            activeSpans.forEach(def => {
+                const span = document.createElement('div');
+                span.className = `span-line ${def.dir}-span`;
+                span.id = def.id;
+
+                const lbl = document.createElement('div');
+                lbl.className = 'span-label';
+                lbl.innerText = def.label;
+                lbl.dataset.tx = 0; lbl.dataset.ty = 0;
+
+                if (def.dir === 'v') {
+                    lbl.style.left = 'calc(50% + 45px)'; lbl.style.top = '50%';
+                } else {
+                    lbl.style.top = '50%'; 
+                    if (def.align === 'left') { lbl.style.left = '-5px'; lbl.style.transform = 'translate(-100%, -50%)'; } 
+                    else if (def.align === 'right') { lbl.style.left = 'calc(100% + 5px)'; lbl.style.transform = 'translate(0, -50%)'; } 
+                    else { lbl.style.left = '50%'; lbl.style.transform = 'translate(-50%, -50%)'; }
+                }
+
+                span.appendChild(lbl);
+                span.dataset.dir = def.dir; span.dataset.val = def.val; span.dataset.lines = JSON.stringify(def.lines);
+                imgContainer.appendChild(span);
+                spanElements[def.id] = span;
+            });
+
+            applyVisibilityFilter(); updateSpanLines();
+        }
+
+        function updateSpanLines() {
+            const show = showSpanLinesTgl.checked;
+            const filterName = `viewMode${currentMode === 'cup' ? 'Cup' : 'BWH'}`;
+            const radioNode = document.querySelector(`input[name="${filterName}"]:checked`);
+            const mode = radioNode ? radioNode.value : 'all';
+
+            Object.keys(spanElements).forEach(id => {
+                const span = spanElements[id];
+                const def = masterSpanDefs.find(d => d.id === id);
+                if (!show) { span.style.display = 'none'; return; }
+
+                const group = def.lines[0].startsWith('h') && def.lines[0].length === 2 ? 'h' : def.lines[0].substring(0, 2);
+                const matchMode = mode === 'all' || mode === group || (mode === 'h' && def.id === 'span_h');
+                if(!matchMode) { span.style.display = 'none'; return; }
+
+                span.style.display = 'flex'; span.style.color = def.color;
+                const l1 = parseFloat(lineElements[def.lines[0]].dataset.val);
+                const l2 = parseFloat(lineElements[def.lines[1]].dataset.val);
+
+                if (def.dir === 'v') {
+                    span.style.top = Math.min(l1, l2) + '%'; span.style.height = Math.abs(l1 - l2) + '%';
+                    span.style.left = span.dataset.val + '%';
+                } else {
+                    span.style.left = Math.min(l1, l2) + '%'; span.style.width = Math.abs(l1 - l2) + '%';
+                    span.style.top = span.dataset.val + '%';
+                }
+            });
+        }
+
+        document.getElementById('hideLabelsToggle').addEventListener('change', (e) => e.target.checked ? imgContainer.classList.add('hide-labels') : imgContainer.classList.remove('hide-labels'));
+        document.getElementById('hideSpanLabelsToggle').addEventListener('change', (e) => e.target.checked ? imgContainer.classList.add('hide-span-labels') : imgContainer.classList.remove('hide-span-labels'));
+        
+        document.querySelectorAll('input[type="radio"]').forEach(r => r.addEventListener('change', () => { applyVisibilityFilter(); updateSpanLines(); }));
+
+        function applyVisibilityFilter() {
+            const filterName = `viewMode${currentMode === 'cup' ? 'Cup' : 'BWH'}`;
+            const radioNode = document.querySelector(`input[name="${filterName}"]:checked`);
+            if(!radioNode) return;
+            const mode = radioNode.value;
+            contextualGuide.innerHTML = guideTexts[mode] || guideTexts['all'];
+            Object.values(lineElements).forEach(line => line.style.display = (mode === 'all' || line.dataset.group === mode) ? 'block' : 'none');
+        }
+
+        // --- Math & Calculation ---
+        function getPxDist(id1, id2, totalPx) { return (Math.abs(parseFloat(lineElements[id1].dataset.val) - parseFloat(lineElements[id2].dataset.val)) / 100) * totalPx; }
+        
+        const calcPerimeter = (a, b) => Math.PI * (3 * (a + b) - Math.sqrt((3 * a + b) * (a + 3 * b)));
+
+        const sleep = ms => new Promise(r => setTimeout(r, ms));
+        function createMathStep(titleText, latexString) {
+            const step = document.createElement('div'); step.className = 'math-step';
+            const title = document.createElement('div'); title.className = 'step-title'; title.innerText = titleText; step.appendChild(title);
+            const mathDiv = document.createElement('div'); katex.render(latexString, mathDiv, { displayMode: true }); step.appendChild(mathDiv);
+            mathBoard.appendChild(step); setTimeout(() => { step.classList.add('visible'); step.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 50);
+        }
+
+        calcBtn.addEventListener('click', async () => {
+            calcBtn.disabled = true; exportBtn.disabled = true; mathBoard.innerHTML = ''; mathBoard.style.display = 'flex';
+            
+            const filterName = `viewMode${currentMode === 'cup' ? 'Cup' : 'BWH'}`;
+            document.querySelector(`input[name="${filterName}"][value="all"]`).checked = true; 
+            applyVisibilityFilter(); updateSpanLines();
+            
+            const animate = document.getElementById('showAnimation').checked;
+            const animDelay = animate ? 1500 : 0;
+            
+            const actualHeightCm = getActualHeightCm();
+            const intrinsicH = refImage.naturalHeight; const intrinsicW = refImage.naturalWidth;
+            const h_px = getPxDist('h1', 'h2', intrinsicH);
+            const scaleFactor = actualHeightCm / h_px;
+
+            createMathStep("Step 1: Establishing Coordinate Scale", String.raw`S = \frac{\mathrm{Height_{cm}}}{\mathrm{Height_{px}}} = \frac{${actualHeightCm}\mathrm{cm}}{${h_px.toFixed(1)}\mathrm{px}} = ${scaleFactor.toFixed(4)} \mathrm{cm/px}`);
+            await sleep(animDelay);
+
+            if (currentMode === 'cup') {
+                const system = document.getElementById('cupSystem').value;
+                const sysStr = system === 'jis' ? 'JIS' : 'US/UK';
+
+                const uw_cm = getPxDist('uw1', 'uw2', intrinsicW) * scaleFactor;
+                const ud_cm = getPxDist('ud1', 'ud2', intrinsicW) * scaleFactor;
+                const bw_cm = getPxDist('bw1', 'bw2', intrinsicW) * scaleFactor;
+                const bd_cm = getPxDist('bd1', 'bd2', intrinsicW) * scaleFactor;
+
+                const a_u = uw_cm / 2; const b_u = ud_cm / 2; const a_b = bw_cm / 2; const b_b = bd_cm / 2;
+                const c_u = calcPerimeter(a_u, b_u); const c_b = calcPerimeter(a_b, b_b); const diff = c_b - c_u;
+                
+                let cup = "T+";
+                if (system === 'jis') {
+                    const sizes = [{l:8.75, c:'AA'}, {l:11.25, c:'A'}, {l:13.75, c:'B'}, {l:16.25, c:'C'}, {l:18.75, c:'D'}, {l:21.25, c:'E'}, {l:23.75, c:'F'}, {l:26.25, c:'G'}, {l:28.75, c:'H'}, {l:31.25, c:'I'}, {l:33.75, c:'J'}, {l:36.25, c:'K'}, {l:38.75, c:'L'}, {l:41.25, c:'M'}, {l:43.75, c:'N'}, {l:46.25, c:'O'}, {l:48.75, c:'P'}, {l:51.25, c:'Q'}, {l:53.75, c:'R'}, {l:56.25, c:'S'}];
+                    cup = sizes.find(s => diff < s.l)?.c || "T+";
+                } else {
+                    const diffIn = diff / 2.54;
+                    if(diffIn < 0.5) cup = 'AA';
+                    else {
+                        const cupArr = ['A', 'B', 'C', 'D', 'DD (E)', 'DDD (F)', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T'];
+                        cup = cupArr[Math.min(Math.floor(diffIn - 0.5), cupArr.length - 1)] || "T+";
+                    }
+                }
+                
+                lastMathData = { mode: 'cup', au: a_u, bu: b_u, ab: a_b, bb: b_b, cu: c_u, cb: c_b, diff: diff, cup: cup, sysStr: sysStr };
+
+                createMathStep("Step 2: Ramanujan's Ellipse (Underbust)", String.raw`C_u \approx \pi \left[ 3(${a_u.toFixed(1)}+${b_u.toFixed(1)}) - \sqrt{(3(${a_u.toFixed(1)})+${b_u.toFixed(1)})(${a_u.toFixed(1)}+3(${b_u.toFixed(1)}))} \right] \\ C_u = ${c_u.toFixed(2)} \mathrm{cm}`);
+                await sleep(animDelay);
+                createMathStep("Step 3: Ramanujan's Ellipse (Bust)", String.raw`C_b \approx \pi \left[ 3(${a_b.toFixed(1)}+${b_b.toFixed(1)}) - \sqrt{\dots} \right] \\ C_b = ${c_b.toFixed(2)} \mathrm{cm}`);
+                await sleep(animDelay);
+                
+                let deltaStr = String.raw`\Delta = C_b - C_u = ${c_b.toFixed(2)} - ${c_u.toFixed(2)} = ${diff.toFixed(2)} \mathrm{cm}`;
+                if(system === 'us') deltaStr += String.raw` \approx ${(diff/2.54).toFixed(2)} \mathrm{in}`;
+                createMathStep("Step 4: Circumference Delta", deltaStr);
+                await sleep(animDelay > 0 ? 1000 : 0);
+
+                const finalCard = document.createElement('div'); finalCard.className = 'final-result-card';
+                let diffPrint = system === 'jis' ? `${diff.toFixed(2)} cm` : `${(diff/2.54).toFixed(2)} inches`;
+                finalCard.innerHTML = `<h3>Estimated ${sysStr} Size</h3><div class="main-stat">${cup} Cup</div><p class="sub-stat">Difference: ${diffPrint}</p>`;
+                mathBoard.appendChild(finalCard);
+            } 
+            else {
+                // BWH Mode Calculations
+                const bw_cm = getPxDist('bw1', 'bw2', intrinsicW) * scaleFactor;
+                const bd_cm = getPxDist('bd1', 'bd2', intrinsicW) * scaleFactor;
+                const ww_cm = getPxDist('ww1', 'ww2', intrinsicW) * scaleFactor;
+                const wd_cm = getPxDist('wd1', 'wd2', intrinsicW) * scaleFactor;
+                const hw_cm = getPxDist('hw1', 'hw2', intrinsicW) * scaleFactor;
+                const hd_cm = getPxDist('hd1', 'hd2', intrinsicW) * scaleFactor;
+
+                const a_b = bw_cm / 2; const b_b = bd_cm / 2;
+                const a_w = ww_cm / 2; const b_w = wd_cm / 2;
+                const a_h = hw_cm / 2; const b_h = hd_cm / 2;
+
+                const c_b = calcPerimeter(a_b, b_b);
+                const c_w = calcPerimeter(a_w, b_w);
+                const c_h = calcPerimeter(a_h, b_h);
+
+                // Body Shape Logic
+                let balanceText = "Balanced Proportions";
+                if (c_b - c_h >= 2.5) balanceText = "Top-heavy Figure";
+                else if (c_h - c_b >= 2.5) balanceText = "Bottom-heavy Figure";
+
+                lastMathData = { mode: 'bwh', ab: a_b, bb: b_b, cb: c_b, aw: a_w, bw: b_w, cw: c_w, ah: a_h, bh: b_h, ch: c_h, balance: balanceText };
+
+                createMathStep("Step 2: Bust Circumference", String.raw`C_b \approx \pi \left[ 3(${a_b.toFixed(1)}+${b_b.toFixed(1)}) - \sqrt{\dots} \right] \\ C_b = ${c_b.toFixed(2)} \mathrm{cm}`);
+                await sleep(animDelay);
+                createMathStep("Step 3: Waist Circumference", String.raw`C_w \approx \pi \left[ 3(${a_w.toFixed(1)}+${b_w.toFixed(1)}) - \sqrt{\dots} \right] \\ C_w = ${c_w.toFixed(2)} \mathrm{cm}`);
+                await sleep(animDelay);
+                createMathStep("Step 4: Hip Circumference", String.raw`C_h \approx \pi \left[ 3(${a_h.toFixed(1)}+${b_h.toFixed(1)}) - \sqrt{\dots} \right] \\ C_h = ${c_h.toFixed(2)} \mathrm{cm}`);
+                await sleep(animDelay > 0 ? 1000 : 0);
+
+                const finalCard = document.createElement('div'); finalCard.className = 'final-result-card';
+                finalCard.style.borderColor = 'var(--accent)';
+                finalCard.innerHTML = `
+                    <h3>Official Three Sizes</h3>
+                    <div class="main-stat" style="color:var(--accent);">B${Math.round(c_b)} - W${Math.round(c_w)} - H${Math.round(c_h)}</div>
+                    <div class="sub-stat" style="font-size: 1.1rem; color: var(--text-muted); margin-top: 5px;">${balanceText}</div>
+                `;
+                mathBoard.appendChild(finalCard);
+            }
+
+            setTimeout(() => { mathBoard.lastChild.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100);
+            calcBtn.disabled = false; exportBtn.disabled = false;
+        });
+
+        // --- Draggable & Resizable Overlay Logic ---
+        function startMathDrag(e) {
+            const rect = draggableMath.getBoundingClientRect(); const pos = getPos(e);
+            if((pos.x > rect.right - 35) && (pos.y > rect.bottom - 35)) return; // Pass to resize
+            isDraggingMath = true; mathOffsetX = pos.x - rect.left; mathOffsetY = pos.y - rect.top;
+            e.stopPropagation(); 
+        }
+
+        function startMathResize(e) {
+            isResizingMath = true; const pos = getPos(e);
+            initialMouseX = pos.x; initialMouseY = pos.y;
+            const rect = draggableMath.getBoundingClientRect();
+            initialMathWidth = rect.width / scale; initialMathHeight = rect.height / scale;
+            e.stopPropagation(); e.preventDefault();
+        }
+
+        draggableMath.addEventListener('mousedown', startMathDrag);
+        draggableMath.addEventListener('touchstart', startMathDrag, {passive: false});
+        resizeHandle.addEventListener('mousedown', startMathResize);
+        resizeHandle.addEventListener('touchstart', startMathResize, {passive: false});
+
+        // --- Export Studio Sequence ---
+        let savedTransform = { scale: 1, panX: 0, panY: 0 };
+
+        exportBtn.addEventListener('click', () => {
+            mainArea.scrollTo({ top: 0, behavior: 'smooth' });
+            savedTransform = { scale, panX, panY }; resetView();
+            document.querySelector('.sidebar').style.opacity = '0.3'; document.querySelector('.sidebar').style.pointerEvents = 'none';
+
+            if (lastMathData.mode === 'cup') {
+                document.getElementById('exportTitleText').innerText = "Settei Geometry Calculations";
+                document.getElementById('exportTitleText').style.color = "var(--primary)";
+                draggableMath.style.borderColor = "var(--primary)";
+                resizeHandle.style.background = "linear-gradient(135deg, transparent 50%, var(--primary) 50%)";
+                
+                let deltaPrint = lastMathData.sysStr === 'JIS' ? `${lastMathData.diff.toFixed(2)}cm` : `${(lastMathData.diff/2.54).toFixed(2)}in`;
+                exportResultContainer.innerHTML = `
+                    <div style="font-size: 0.9em; color: #94a3b8;">Estimated Cup Size (${lastMathData.sysStr})</div>
+                    <div style="font-size: 3.5em; color: #ef4444; font-weight: bold; text-shadow: 0 0 10px rgba(239,68,68,0.5);">${lastMathData.cup} Cup</div>
+                    <div style="font-size: 0.8em; color: #94a3b8;">Δ: ${deltaPrint}</div>
+                `;
+                
+                const fullMathHTML = String.raw`
+                    C \approx \pi \left[ 3(a+b) - \sqrt{(3a+b)(a+3b)} \right] \\
+                    \begin{aligned}
+                    a_u &= ${lastMathData.au.toFixed(1)}, & b_u &= ${lastMathData.bu.toFixed(1)} &\Rightarrow C_u &= ${lastMathData.cu.toFixed(1)}\mathrm{cm} \\
+                    a_b &= ${lastMathData.ab.toFixed(1)}, & b_b &= ${lastMathData.bb.toFixed(1)} &\Rightarrow C_b &= ${lastMathData.cb.toFixed(1)}\mathrm{cm}
+                    \end{aligned} \\
+                    \Delta = C_b - C_u = ${lastMathData.diff.toFixed(1)}\mathrm{cm}
+                `;
+                katex.render(fullMathHTML, document.getElementById('exportMathContent'), {displayMode: true});
+                
+            } else {
+                document.getElementById('exportTitleText').innerText = "Official Three Sizes (BWH)";
+                document.getElementById('exportTitleText').style.color = "var(--accent)";
+                draggableMath.style.borderColor = "var(--accent)";
+                resizeHandle.style.background = "linear-gradient(135deg, transparent 50%, var(--accent) 50%)";
+
+                exportResultContainer.innerHTML = `
+                    <div style="font-size: 0.9em; color: #94a3b8;">Calculated Proportions</div>
+                    <div style="font-size: 3.2em; color: #10b981; font-weight: bold; text-shadow: 0 0 10px rgba(16,185,129,0.5); margin:10px 0;">B${Math.round(lastMathData.cb)} - W${Math.round(lastMathData.cw)} - H${Math.round(lastMathData.ch)}</div>
+                    <div style="font-size: 1em; color: #94a3b8; margin-top: 5px;">${lastMathData.balance}</div>
+                `;
+
+                const fullMathHTML = String.raw`
+                    \begin{aligned}
+                    \mathrm{Bust}& \Rightarrow a= ${lastMathData.ab.toFixed(1)}, b= ${lastMathData.bb.toFixed(1)} &\rightarrow C_b &\approx ${Math.round(lastMathData.cb)}\mathrm{cm} \\
+                    \mathrm{Waist}& \Rightarrow a= ${lastMathData.aw.toFixed(1)}, b= ${lastMathData.bw.toFixed(1)} &\rightarrow C_w &\approx ${Math.round(lastMathData.cw)}\mathrm{cm} \\
+                    \mathrm{Hips}& \Rightarrow a= ${lastMathData.ah.toFixed(1)}, b= ${lastMathData.bh.toFixed(1)} &\rightarrow C_h &\approx ${Math.round(lastMathData.ch)}\mathrm{cm}
+                    \end{aligned}
+                `;
+                katex.render(fullMathHTML, document.getElementById('exportMathContent'), {displayMode: true});
+            }
+
+            draggableMath.style.display = 'block';
+            exportControls.style.display = 'flex';
+            
+            const rect = draggableMath.getBoundingClientRect();
+            draggableMath.style.fontSize = Math.max(4, (rect.width / 450) * 16) + 'px';
+        });
+
+        cancelExportBtn.addEventListener('click', () => {
+            draggableMath.style.display = 'none'; exportControls.style.display = 'none';
+            document.querySelector('.sidebar').style.opacity = '1'; document.querySelector('.sidebar').style.pointerEvents = 'auto';
+            scale = savedTransform.scale; panX = savedTransform.panX; panY = savedTransform.panY; updateTransform();
+        });
+
+        saveConfirmBtn.addEventListener('click', async () => {
+            saveConfirmBtn.innerText = "Processing..."; saveConfirmBtn.disabled = true;
+
+            const stagingArea = document.createElement('div');
+            stagingArea.style.position = 'fixed'; stagingArea.style.top = '0'; stagingArea.style.left = '-9999px';
+            stagingArea.style.width = refImage.naturalWidth + 'px'; stagingArea.style.height = refImage.naturalHeight + 'px';
+            stagingArea.style.zIndex = '-1'; document.body.appendChild(stagingArea);
+
+            const clone = imgContainer.cloneNode(true);
+            const widthRatio = refImage.naturalWidth / imgContainer.offsetWidth;
+            const heightRatio = refImage.naturalHeight / imgContainer.offsetHeight;
+
+            clone.style.transform = 'none'; clone.style.left = '0'; clone.style.top = '0';
+            clone.style.width = '100%'; clone.style.height = '100%';
+            clone.style.setProperty('--line-w', lineWidthInput.value + 'px');
+
+            const cloneImg = clone.querySelector('img');
+            if (cloneImg) {
+                cloneImg.style.maxWidth = 'none'; cloneImg.style.maxHeight = 'none';
+                cloneImg.style.width = '100%'; cloneImg.style.height = '100%';
+            }
+
+            const overlayOnClone = clone.querySelector('#draggableMath');
+            if (overlayOnClone) {
+                overlayOnClone.style.backdropFilter = 'none'; overlayOnClone.style.webkitBackdropFilter = 'none';
+                overlayOnClone.style.background = 'rgba(15, 23, 42, 1)'; overlayOnClone.style.boxShadow = 'none'; 
+                
+                const handleOnClone = overlayOnClone.querySelector('.resize-handle');
+                if (handleOnClone) handleOnClone.style.display = 'none';
+                
+                const currentLeft = parseFloat(getComputedStyle(draggableMath).left) || 20;
+                const currentTop = parseFloat(getComputedStyle(draggableMath).top) || 20;
+                const currentWidth = parseFloat(getComputedStyle(draggableMath).width);
+                const currentHeight = parseFloat(getComputedStyle(draggableMath).height);
+                const currentFontSize = parseFloat(getComputedStyle(draggableMath).fontSize);
+                
+                overlayOnClone.style.left = (currentLeft * widthRatio) + 'px';
+                overlayOnClone.style.top = (currentTop * heightRatio) + 'px';
+                overlayOnClone.style.width = (currentWidth * widthRatio) + 'px';
+                overlayOnClone.style.height = (currentHeight * heightRatio) + 'px';
+                overlayOnClone.style.fontSize = (currentFontSize * widthRatio) + 'px';
+            }
+
+            stagingArea.appendChild(clone);
+
+            try {
+                const canvas = await html2canvas(clone, { 
+                    backgroundColor: null, scale: 2, useCORS: true, logging: false,
+                    width: refImage.naturalWidth, height: refImage.naturalHeight,
+                    windowWidth: refImage.naturalWidth, windowHeight: refImage.naturalHeight,
+                    ignoreElements: (element) => element.id === 'viewportWrapper' || element.id === 'loupeCanvas'
+                });
+                
+                const link = document.createElement('a'); 
+                link.download = currentMode === 'cup' ? 'Settei_CupSize.png' : 'Settei_ThreeSizes.png';
+                link.href = canvas.toDataURL('image/png'); link.click();
+            } catch (err) {
+                console.error("Export failed:", err); alert("Failed to export image.");
+            } finally {
+                document.body.removeChild(stagingArea);
+                saveConfirmBtn.innerText = "Confirm & Save"; saveConfirmBtn.disabled = false;
+                cancelExportBtn.click();
+            }
+        });
+    </script>
+</body>
+</html>
